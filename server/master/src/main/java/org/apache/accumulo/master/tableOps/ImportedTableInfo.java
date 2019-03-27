@@ -17,15 +17,24 @@
 package org.apache.accumulo.master.tableOps;
 
 import java.io.Serializable;
+import java.util.List;
 
 class ImportedTableInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  public String exportDir;
   public String user;
   public String tableName;
   public String tableId;
   public String importDir;
   public String namespaceId;
+  public List<DirectoryMapping> directories;
+  public String exportFileDir;
+
+  static class DirectoryMapping implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    public String exportDir;
+    public String importDir;
+  }
 }

@@ -50,66 +50,69 @@ class MapImportFileNames extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
 
-    Path path = new Path(tableInfo.importDir, "mappings.txt");
+    VolumeManager fs = environment.getFileSystem();
+    UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
 
-    BufferedWriter mappingsWriter = null;
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      Path path = new Path(dm.importDir, "mappings.txt");
 
-    try {
-      VolumeManager fs = environment.getFileSystem();
+      BufferedWriter mappingsWriter = null;
 
-      fs.mkdirs(new Path(tableInfo.importDir));
+      try {
+        fs.mkdirs(new Path(dm.importDir));
+        FileStatus[] files = fs.listStatus(new Path(dm.exportDir));
 
-      FileStatus[] files = fs.listStatus(new Path(tableInfo.exportDir));
+        mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), UTF_8));
 
-      UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
+        for (FileStatus fileStatus : files) {
+          String fileName = fileStatus.getPath().getName();
+          log.info("filename " + fileStatus.getPath());
+          String[] sa = fileName.split("\\.");
+          String extension = "";
+          if (sa.length > 1) {
+            extension = sa[sa.length - 1];
 
-      mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), UTF_8));
-
-      for (FileStatus fileStatus : files) {
-        String fileName = fileStatus.getPath().getName();
-        log.info("filename " + fileStatus.getPath().toString());
-        String sa[] = fileName.split("\\.");
-        String extension = "";
-        if (sa.length > 1) {
-          extension = sa[sa.length - 1];
-
-          if (!FileOperations.getValidExtensions().contains(extension)) {
-            continue;
+            if (!FileOperations.getValidExtensions().contains(extension)) {
+              continue;
+            }
+          } else {
+            // assume it is a map file
+            extension = Constants.MAPFILE_EXTENSION;
           }
-        } else {
-          // assume it is a map file
-          extension = Constants.MAPFILE_EXTENSION;
+
+          String newName = "I" + namer.getNextName() + "." + extension;
+
+          mappingsWriter.append(fileName);
+          mappingsWriter.append(':');
+          mappingsWriter.append(newName);
+          mappingsWriter.newLine();
         }
 
-        String newName = "I" + namer.getNextName() + "." + extension;
-
-        mappingsWriter.append(fileName);
-        mappingsWriter.append(':');
-        mappingsWriter.append(newName);
-        mappingsWriter.newLine();
+        mappingsWriter.close();
+        mappingsWriter = null;
+      } catch (IOException ioe) {
+        log.warn("{}", ioe.getMessage(), ioe);
+        throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName,
+            TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+            "Error writing mapping file " + path + " " + ioe.getMessage());
+      } finally {
+        if (mappingsWriter != null)
+          try {
+            mappingsWriter.close();
+          } catch (IOException ioe) {
+            log.warn("Failed to close " + path, ioe);
+          }
       }
-
-      mappingsWriter.close();
-      mappingsWriter = null;
-
-      return new PopulateMetadataTable(tableInfo);
-    } catch (IOException ioe) {
-      log.warn("{}", ioe.getMessage(), ioe);
-      throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName,
-          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Error writing mapping file " + path + " " + ioe.getMessage());
-    } finally {
-      if (mappingsWriter != null)
-        try {
-          mappingsWriter.close();
-        } catch (IOException ioe) {
-          log.warn("Failed to close " + path, ioe);
-        }
     }
+
+    return new PopulateMetadataTable(tableInfo);
   }
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    env.getFileSystem().deleteRecursively(new Path(tableInfo.importDir));
+    // TODO: will this be OK for partially complete operations?
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      env.getFileSystem().deleteRecursively(new Path(dm.importDir));
+    }
   }
 }
