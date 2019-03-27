@@ -43,24 +43,26 @@ class CreateImportDir extends MasterRepo {
   public Repo<Master> call(long tid, Master master) throws Exception {
 
     UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
-
-    Path exportDir = new Path(tableInfo.exportDir);
     String[] tableDirs = ServerConstants.getTablesDirs(master.getContext());
 
-    log.info("Looking for matching filesystem for " + exportDir + " from options "
-        + Arrays.toString(tableDirs));
-    Path base = master.getFileSystem().matchingFileSystem(exportDir, tableDirs);
-    if (base == null) {
-      throw new IOException(tableInfo.exportDir + " is not in a volume configured for Accumulo");
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      Path exportDir = new Path(dm.exportDir);
+
+      log.info("Looking for matching filesystem for " + exportDir + " from options "
+          + Arrays.toString(tableDirs));
+      Path base = master.getFileSystem().matchingFileSystem(exportDir, tableDirs);
+      if (base == null) {
+        throw new IOException(dm.exportDir + " is not in a volume configured for Accumulo");
+      }
+      log.info("Chose base table directory of " + base);
+      Path directory = new Path(base, tableInfo.tableId.canonical());
+
+      Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
+
+      dm.importDir = newBulkDir.toString();
+
+      log.info("Using import dir: " + dm.importDir);
     }
-    log.info("Chose base table directory of " + base);
-    Path directory = new Path(base, tableInfo.tableId.canonical());
-
-    Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
-
-    tableInfo.importDir = newBulkDir.toString();
-
-    log.info("Using import dir: " + tableInfo.importDir);
 
     return new MapImportFileNames(tableInfo);
   }

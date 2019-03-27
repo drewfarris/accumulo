@@ -56,7 +56,7 @@ class ImportPopulateZookeeper extends MasterRepo {
 
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
 
-    Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
+    Path path = new Path(tableInfo.exportFileDir, Constants.EXPORT_FILE);
 
     try {
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();

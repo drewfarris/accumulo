@@ -47,25 +47,27 @@ class MoveExportedFiles extends MasterRepo {
     try {
       VolumeManager fs = master.getFileSystem();
 
-      Map<String,String> fileNameMappings = PopulateMetadataTable.readMappingFile(fs, tableInfo);
+      for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+        Map<String,String> fileNameMappings = PopulateMetadataTable.readMappingFile(fs,
+            dm.importDir);
 
-      for (String oldFileName : fileNameMappings.keySet()) {
-        if (!fs.exists(new Path(tableInfo.exportDir, oldFileName))) {
-          throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
-              tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-              "File referenced by exported table does not exists " + oldFileName);
+        for (String oldFileName : fileNameMappings.keySet()) {
+          if (!fs.exists(new Path(dm.exportDir, oldFileName))) {
+            throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
+                tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+                "File referenced by exported table does not exists " + oldFileName);
+          }
+        }
+
+        FileStatus[] files = fs.listStatus(new Path(dm.exportDir));
+
+        for (FileStatus fileStatus : files) {
+          String newName = fileNameMappings.get(fileStatus.getPath().getName());
+
+          if (newName != null)
+            fs.rename(fileStatus.getPath(), new Path(dm.importDir, newName));
         }
       }
-
-      FileStatus[] files = fs.listStatus(new Path(tableInfo.exportDir));
-
-      for (FileStatus fileStatus : files) {
-        String newName = fileNameMappings.get(fileStatus.getPath().getName());
-
-        if (newName != null)
-          fs.rename(fileStatus.getPath(), new Path(tableInfo.importDir, newName));
-      }
-
       return new FinishImportTable(tableInfo);
     } catch (IOException ioe) {
       log.warn("{}", ioe.getMessage(), ioe);
