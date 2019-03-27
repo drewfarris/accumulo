@@ -22,7 +22,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -88,7 +90,7 @@ public class ImportTable extends MasterRepo {
   public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
     Path exportFilePath = findExportFile(env);
 
-    tableInfo.exportFileDir = exportFilePath.toString();
+    tableInfo.exportFile = exportFilePath.toString();
 
     Integer exportVersion = null;
     Integer dataVersion = null;
@@ -145,6 +147,8 @@ public class ImportTable extends MasterRepo {
     String[] exportDirs = exportDir.split(",");
     List<ImportedTableInfo.DirectoryMapping> dirs = new ArrayList<>(exportDirs.length);
     for (String ed : exportDirs) {
+      log.info("Extracted import directory: {}", ed);
+
       ImportedTableInfo.DirectoryMapping dir = new ImportedTableInfo.DirectoryMapping();
       dir.exportDir = ed;
       dirs.add(dir);
@@ -153,27 +157,31 @@ public class ImportTable extends MasterRepo {
   }
 
   Path findExportFile(Master env) throws AcceptableThriftTableOperationException {
-    Path exportFilePath = null;
+    LinkedHashSet<Path> exportFiles = new LinkedHashSet<>();
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      exportFilePath = new Path(dm.exportDir, Constants.EXPORT_FILE);
+      Path exportFilePath = new Path(dm.exportDir, Constants.EXPORT_FILE);
       try {
         if (env.getFileSystem().exists(exportFilePath)) {
-          break;
+          exportFiles.add(exportFilePath);
         }
-        exportFilePath = null;
       } catch (IOException ioe) {
-        exportFilePath = null;
         log.warn("Non-Fatal IOException reading export file: {}", exportFilePath, ioe);
       }
     }
 
-    if (exportFilePath == null) {
+    if (exportFiles.size() > 1) {
+      String fileList = Arrays.toString(exportFiles.toArray());
+      log.warn("Found multiple export metadata files: " + fileList);
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "Found multiple export metadata files: " + fileList);
+    } else if (exportFiles.isEmpty()) {
       log.warn("Unable to locate export metadata");
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Unable to locate export metadata");
     }
 
-    return exportFilePath;
+    return exportFiles.iterator().next();
   }
 }

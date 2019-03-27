@@ -208,6 +208,7 @@
           <configuration>
             <testSourceDirectory>${project.basedir}/src/main/java/</testSourceDirectory>
             <testClassesDirectory>${project.build.directory}/classes/</testClassesDirectory>
+            <skipTests>${failsafe.skip}</skipTests>
             <systemPropertyVariables>
               <timeout.factor>${timeout.factor}</timeout.factor>
               <org.apache.accumulo.test.functional.useCredProviderForIT>${useCredProviderForIT}</org.apache.accumulo.test.functional.useCredProviderForIT>
@@ -220,6 +221,7 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
+            <skipTests>${surefire.skip}</skipTests>
             <systemPropertyVariables>
               <org.apache.accumulo.test.functional.useCredProviderForIT>${useCredProviderForIT}</org.apache.accumulo.test.functional.useCredProviderForIT>
               <org.apache.accumulo.test.functional.useSslForIT>${useSslForIT}</org.apache.accumulo.test.functional.useSslForIT>

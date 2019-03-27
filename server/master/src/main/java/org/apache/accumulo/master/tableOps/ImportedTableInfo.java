@@ -26,10 +26,9 @@ class ImportedTableInfo implements Serializable {
   public String user;
   public String tableName;
   public String tableId;
-  public String importDir;
   public String namespaceId;
   public List<DirectoryMapping> directories;
-  public String exportFileDir;
+  public String exportFile;
 
   static class DirectoryMapping implements Serializable {
     private static final long serialVersionUID = 1L;

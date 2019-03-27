@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.client.impl.Namespaces;
@@ -54,7 +53,7 @@ class ImportPopulateZookeeper extends MasterRepo {
 
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
 
-    Path path = new Path(tableInfo.exportFileDir, Constants.EXPORT_FILE);
+    Path path = new Path(tableInfo.exportFile);
 
     try {
       FileSystem ns = fs.getVolumeByPath(path).getFileSystem();

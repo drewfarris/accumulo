@@ -65,132 +65,132 @@ class PopulateMetadataTable extends MasterRepo {
     this.tableInfo = ti;
   }
 
-  static Map<String,String> readMappingFile(VolumeManager fs, String importDir) throws Exception {
+  static void readMappingFile(VolumeManager fs, ImportedTableInfo tableInfo, String importDir,
+      Map<String,String> fileNameMappings) throws Exception {
     BufferedReader in = new BufferedReader(
         new InputStreamReader(fs.open(new Path(importDir, "mappings.txt")), UTF_8));
     try {
-      Map<String,String> map = new HashMap<>();
-
-      String line = null;
+      String line, prev;
       while ((line = in.readLine()) != null) {
         String[] sa = line.split(":", 2);
-        map.put(sa[0], sa[1]);
-      }
+        prev = fileNameMappings.put(sa[0], importDir + "/" + sa[1]);
 
-      return map;
+        if (prev != null) {
+          String msg = "File exists in multiple import directories: '" + sa[0] + "'";
+          log.warn(msg);
+          throw new AcceptableThriftTableOperationException(tableInfo.tableId, tableInfo.tableName,
+              TableOperation.IMPORT, TableOperationExceptionType.OTHER, msg);
+        }
+      }
     } finally {
       in.close();
     }
-
   }
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
 
-    Path path = new Path(tableInfo.exportFileDir, Constants.EXPORT_FILE);
+    Path path = new Path(tableInfo.exportFile);
 
     BatchWriter mbw = null;
     ZipInputStream zis = null;
 
     try {
       VolumeManager fs = master.getFileSystem();
-      final String[] volumes = ServerConstants.getBaseUris();
 
       mbw = master.getConnector().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
       zis = new ZipInputStream(fs.open(path));
 
+      Map<String,String> fileNameMappings = new HashMap<>();
       for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-        Map<String,String> fileNameMappings = readMappingFile(fs, dm.importDir);
-
         log.info("importDir is " + dm.importDir);
-
-        // This is a directory already prefixed with proper volume information e.g.
+        // mappings are prefixed with the proper volume information, e.g:
         // hdfs://localhost:8020/path/to/accumulo/tables/...
-        final String bulkDir = dm.importDir;
+        readMappingFile(fs, tableInfo, dm.importDir, fileNameMappings);
+      }
 
-        ZipEntry zipEntry;
-        while ((zipEntry = zis.getNextEntry()) != null) {
-          if (zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
-            DataInputStream in = new DataInputStream(new BufferedInputStream(zis));
+      final String[] volumes = ServerConstants.getBaseUris();
 
-            Key key = new Key();
-            Value val = new Value();
+      ZipEntry zipEntry;
+      while ((zipEntry = zis.getNextEntry()) != null) {
+        if (zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
+          DataInputStream in = new DataInputStream(new BufferedInputStream(zis));
 
-            Mutation m = null;
-            Text currentRow = null;
-            int dirCount = 0;
+          Key key = new Key();
+          Value val = new Value();
 
-            while (true) {
-              key.readFields(in);
-              val.readFields(in);
+          Mutation m = null;
+          Text currentRow = null;
+          int dirCount = 0;
 
-              Text endRow = new KeyExtent(key.getRow(), (Text) null).getEndRow();
-              Text metadataRow = new KeyExtent(tableInfo.tableId, endRow, null).getMetadataEntry();
+          while (true) {
+            key.readFields(in);
+            val.readFields(in);
 
-              Text cq;
+            Text endRow = new KeyExtent(key.getRow(), (Text) null).getEndRow();
+            Text metadataRow = new KeyExtent(tableInfo.tableId, endRow, null).getMetadataEntry();
 
-              if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-                String oldName = new Path(key.getColumnQualifier().toString()).getName();
-                String newName = fileNameMappings.get(oldName);
+            Text cq;
 
-                if (newName == null) {
-                  throw new AcceptableThriftTableOperationException(tableInfo.tableId,
-                      tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-                      "File " + oldName + " does not exist in import dir");
-                }
+            if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+              String oldName = new Path(key.getColumnQualifier().toString()).getName();
+              String newName = fileNameMappings.get(oldName);
 
-                cq = new Text(bulkDir + "/" + newName);
-              } else {
-                cq = key.getColumnQualifier();
+              if (newName == null) {
+                throw new AcceptableThriftTableOperationException(tableInfo.tableId,
+                    tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+                    "File " + oldName + " does not exist in import dir");
               }
 
-              if (m == null) {
-                // Make a unique directory inside the table's dir. Cannot import multiple tables
-                // into
-                // one table, so don't need to use unique allocator
-                String tabletDir = new String(
-                    FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
-                    UTF_8);
-
-                // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-                String absolutePath = getClonedTabletDir(master, volumes, tabletDir);
-
-                m = new Mutation(metadataRow);
-                TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
-                    new Value(absolutePath.getBytes(UTF_8)));
-                currentRow = metadataRow;
-              }
-
-              if (!currentRow.equals(metadataRow)) {
-                mbw.addMutation(m);
-
-                // Make a unique directory inside the table's dir. Cannot import multiple tables
-                // into
-                // one table, so don't need to use unique allocator
-                String tabletDir = new String(
-                    FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
-                    UTF_8);
-
-                // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
-                String absolutePath = getClonedTabletDir(master, volumes, tabletDir);
-
-                m = new Mutation(metadataRow);
-                TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
-                    new Value(absolutePath.getBytes(UTF_8)));
-              }
-
-              m.put(key.getColumnFamily(), cq, val);
-
-              if (endRow == null
-                  && TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
-                mbw.addMutation(m);
-                break; // its the last column in the last row
-              }
+              cq = new Text(newName);
+            } else {
+              cq = key.getColumnQualifier();
             }
 
-            break;
+            if (m == null) {
+              // Make a unique directory inside the table's dir. Cannot import multiple tables
+              // into one table, so don't need to use unique allocator
+              String tabletDir = new String(
+                  FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
+                  UTF_8);
+
+              // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
+              String absolutePath = getClonedTabletDir(master, volumes, tabletDir);
+
+              m = new Mutation(metadataRow);
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
+                  new Value(absolutePath.getBytes(UTF_8)));
+              currentRow = metadataRow;
+            }
+
+            if (!currentRow.equals(metadataRow)) {
+              mbw.addMutation(m);
+
+              // Make a unique directory inside the table's dir. Cannot import multiple tables into
+              // one table, so don't need to use unique allocator
+              String tabletDir = new String(
+                  FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
+                  UTF_8);
+
+              // Build up a full hdfs://localhost:8020/accumulo/tables/$id/c-XXXXXXX
+              String absolutePath = getClonedTabletDir(master, volumes, tabletDir);
+
+              m = new Mutation(metadataRow);
+              TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(m,
+                  new Value(absolutePath.getBytes(UTF_8)));
+            }
+
+            m.put(key.getColumnFamily(), cq, val);
+
+            if (endRow == null
+                && TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+              mbw.addMutation(m);
+              break; // its the last column in the last row
+            }
           }
+
+          break;
         }
       }
       return new MoveExportedFiles(tableInfo);
