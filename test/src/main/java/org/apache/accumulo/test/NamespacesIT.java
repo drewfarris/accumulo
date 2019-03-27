@@ -1124,7 +1124,7 @@ public class NamespacesIT extends AccumuloClusterHarness {
             fail();
             break;
           case 2:
-            ops.importTable(tableName, System.getProperty("user.dir") + "/target");
+            ops.importTable(tableName, new String[] {System.getProperty("user.dir") + "/target"});
             fail();
             break;
           default:

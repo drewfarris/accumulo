@@ -1473,39 +1473,43 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void importTable(String tableName, String importDir)
+  public void importTable(String tableName, String[] importDirs)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
-    checkArgument(importDir != null, "importDir is null");
+    checkArgument(importDirs != null, "importDirs is null");
+    checkArgument(importDirs.length > 0, "importDirs is empty");
 
-    try {
-      importDir = checkPath(importDir, "Table", "").toString();
-    } catch (IOException e) {
-      throw new AccumuloException(e);
-    }
+    List<ByteBuffer> args = new ArrayList<>(importDirs.length + 1);
+    args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
 
-    try {
-      FileSystem fs = new Path(importDir).getFileSystem(context.getHadoopConf());
-      Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
-
-      for (Entry<String,String> entry : props.entrySet()) {
-        if (Property.isClassProperty(entry.getKey())
-            && !entry.getValue().contains(Constants.CORE_PACKAGE_NAME)) {
-          LoggerFactory.getLogger(this.getClass()).info(
-              "Imported table sets '{}' to '{}'.  Ensure this class is on Accumulo classpath.",
-              sanitize(entry.getKey()), sanitize(entry.getValue()));
-        }
+    for (String importDir : importDirs) {
+      try {
+        importDir = checkPath(importDir, "Table", "").toString();
+      } catch (IOException e) {
+        throw new AccumuloException(e);
       }
 
-    } catch (IOException ioe) {
-      LoggerFactory.getLogger(this.getClass()).warn(
-          "Failed to check if imported table references external java classes : {}",
-          ioe.getMessage());
+      try {
+        FileSystem fs = new Path(importDir).getFileSystem(context.getHadoopConf());
+        Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
+
+        for (Entry<String,String> entry : props.entrySet()) {
+          if (Property.isClassProperty(entry.getKey())
+              && !entry.getValue().contains(Constants.CORE_PACKAGE_NAME)) {
+            LoggerFactory.getLogger(this.getClass()).info(
+                "Imported table sets '{}' to '{}'.  Ensure this class is on Accumulo classpath.",
+                sanitize(entry.getKey()), sanitize(entry.getValue()));
+          }
+        }
+
+      } catch (IOException ioe) {
+        LoggerFactory.getLogger(this.getClass()).warn(
+            "Failed to check if imported table references external java classes : {}",
+            ioe.getMessage());
+      }
+
+      args.add(ByteBuffer.wrap(importDir.getBytes(UTF_8)));
     }
-
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(importDir.getBytes(UTF_8)));
-
     Map<String,String> opts = Collections.emptyMap();
 
     try {

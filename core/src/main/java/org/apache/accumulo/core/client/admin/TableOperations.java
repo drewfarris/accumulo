@@ -154,11 +154,11 @@ public interface TableOperations {
    *
    * @param tableName
    *          Name of a table to create and import into.
-   * @param importDir
-   *          Directory that contains the files copied by distcp from exportTable
+   * @param importDirs
+   *          Directories that contain the files copied by distcp from exportTable
    * @since 1.5.0
    */
-  void importTable(String tableName, String importDir)
+  void importTable(String tableName, String[] importDirs)
       throws TableExistsException, AccumuloException, AccumuloSecurityException;
 
   /**

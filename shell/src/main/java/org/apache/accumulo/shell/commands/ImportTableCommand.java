@@ -31,13 +31,17 @@ public class ImportTableCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
 
-    shellState.getAccumuloClient().tableOperations().importTable(cl.getArgs()[0], cl.getArgs()[1]);
+    final String[] allArgs = cl.getArgs();
+    final String[] dirArgs = new String[allArgs.length - 1];
+    System.arraycopy(allArgs, 1, dirArgs, 0, allArgs.length - 1);
+    shellState.getAccumuloClient().tableOperations().importTable(allArgs[0], dirArgs);
+
     return 0;
   }
 
   @Override
   public String usage() {
-    return getName() + " <table name> <import dir>";
+    return getName() + " <table name> <import dir1> .. <import dirN>";
   }
 
   @Override

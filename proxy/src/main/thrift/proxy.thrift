@@ -544,7 +544,7 @@ service AccumuloProxy {
   void importTable (
     1:binary login
     2:string tableName
-    3:string importDir
+    3:list<string> importDirs
   ) throws (
     1:TableExistsException ouch1
     2:AccumuloException ouch2

@@ -135,7 +135,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Import dir: {}", Arrays.toString(fs.listStatus(importDir)));
 
       // Import the exported data into a new table
-      client.tableOperations().importTable(destTable, importDir.toString());
+      client.tableOperations().importTable(destTable, new String[] {importDir.toString()});
 
       // Get the table ID for the table that the importtable command created
       final String tableId = client.tableOperations().tableIdMap().get(destTable);
