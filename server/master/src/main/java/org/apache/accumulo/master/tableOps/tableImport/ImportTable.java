@@ -21,6 +21,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -53,15 +58,19 @@ public class ImportTable extends MasterRepo {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
-    tableInfo.exportDir = exportDir;
     tableInfo.namespaceId = namespaceId;
+    tableInfo.directories = parseExportDir(exportDir);
   }
 
   @Override
   public long isReady(long tid, Master environment) throws Exception {
-    return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(), tid)
-        + Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
-            TableOperation.IMPORT);
+    long result = 0;
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), tid);
+    }
+    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
+        TableOperation.IMPORT);
+    return result;
   }
 
   @Override
@@ -86,11 +95,14 @@ public class ImportTable extends MasterRepo {
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
   public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
-    Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
+    Path exportFilePath = findExportFile(env);
+
+    tableInfo.exportFile = exportFilePath.toString();
+
     Integer exportVersion = null;
     Integer dataVersion = null;
 
-    try (ZipInputStream zis = new ZipInputStream(env.getFileSystem().open(path))) {
+    try (ZipInputStream zis = new ZipInputStream(env.getFileSystem().open(exportFilePath))) {
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
@@ -127,7 +139,55 @@ public class ImportTable extends MasterRepo {
 
   @Override
   public void undo(long tid, Master env) throws Exception {
-    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
+    }
+
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+  }
+
+  static List<ImportedTableInfo.DirectoryMapping> parseExportDir(String exportDir) {
+    if (exportDir == null || exportDir.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    String[] exportDirs = exportDir.split(",");
+    List<ImportedTableInfo.DirectoryMapping> dirs = new ArrayList<>(exportDirs.length);
+    for (String ed : exportDirs) {
+      log.info("Extracted import directory: {}", ed);
+      ImportedTableInfo.DirectoryMapping dir = new ImportedTableInfo.DirectoryMapping();
+      dir.exportDir = ed;
+      dirs.add(dir);
+    }
+    return dirs;
+  }
+
+  Path findExportFile(Master env) throws AcceptableThriftTableOperationException {
+    LinkedHashSet<Path> exportFiles = new LinkedHashSet<>();
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      Path exportFilePath = new Path(dm.exportDir, Constants.EXPORT_FILE);
+      try {
+        if (env.getFileSystem().exists(exportFilePath)) {
+          exportFiles.add(exportFilePath);
+        }
+      } catch (IOException ioe) {
+        log.warn("Non-Fatal IOException reading export file: {}", exportFilePath, ioe);
+      }
+    }
+
+    if (exportFiles.size() > 1) {
+      String fileList = Arrays.toString(exportFiles.toArray());
+      log.warn("Found multiple export metadata files: " + fileList);
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "Found multiple export metadata files: " + fileList);
+    } else if (exportFiles.isEmpty()) {
+      log.warn("Unable to locate export metadata");
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "Unable to locate export metadata");
+    }
+
+    return exportFiles.iterator().next();
   }
 }
