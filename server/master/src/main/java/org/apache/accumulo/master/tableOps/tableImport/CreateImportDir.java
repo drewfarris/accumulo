@@ -24,6 +24,7 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.master.Master;
 import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -42,15 +43,24 @@ class CreateImportDir extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
 
-    UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
     String[] tableDirs = ServerConstants.getTablesDirs(master.getContext());
+
+    create(tableDirs, master);
+
+    return new MapImportFileNames(tableInfo);
+  }
+
+  void create(String[] tableDirs, Master master) throws IOException {
+
+    VolumeManager fs = master.getFileSystem();
+    UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Path exportDir = new Path(dm.exportDir);
 
       log.info("Looking for matching filesystem for " + exportDir + " from options "
           + Arrays.toString(tableDirs));
-      Path base = master.getFileSystem().matchingFileSystem(exportDir, tableDirs);
+      Path base = fs.matchingFileSystem(exportDir, tableDirs);
       if (base == null) {
         throw new IOException(dm.exportDir + " is not in a volume configured for Accumulo");
       }
@@ -63,7 +73,5 @@ class CreateImportDir extends MasterRepo {
 
       log.info("Using import dir: " + dm.importDir);
     }
-
-    return new MapImportFileNames(tableInfo);
   }
 }

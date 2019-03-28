@@ -22,6 +22,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -56,14 +58,7 @@ public class ImportTable extends MasterRepo {
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.namespaceId = namespaceId;
-
-    String[] exportDirs = StringUtils.split(exportDir, ',');
-    tableInfo.directories = new ArrayList<>(exportDirs.length);
-    for (String ed : exportDirs) {
-      ImportedTableInfo.DirectoryMapping dir = new ImportedTableInfo.DirectoryMapping();
-      dir.exportDir = ed;
-      tableInfo.directories.add(dir);
-    }
+    tableInfo.directories = parseExportDir(exportDir);
   }
 
   @Override
@@ -99,26 +94,7 @@ public class ImportTable extends MasterRepo {
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
   public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
-    Path exportFilePath = null;
-    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      exportFilePath = new Path(dm.exportDir, Constants.EXPORT_FILE);
-      try {
-        if (env.getFileSystem().exists(exportFilePath)) {
-          break;
-        }
-        exportFilePath = null;
-      } catch (IOException ioe) {
-        exportFilePath = null;
-        log.warn("Non-Fatal IOException reading export file: {}", exportFilePath, ioe);
-      }
-    }
-
-    if (exportFilePath == null) {
-      log.warn("Unable to locate export metadata");
-      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
-          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Unable to locate export metadata");
-    }
+    Path exportFilePath = findExportFile(env);
 
     tableInfo.exportFileDir = exportFilePath.toString();
 
@@ -167,5 +143,45 @@ public class ImportTable extends MasterRepo {
     }
 
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+  }
+
+  static List<ImportedTableInfo.DirectoryMapping> parseExportDir(String exportDir) {
+    if (exportDir == null) {
+      return Collections.emptyList();
+    }
+
+    String[] exportDirs = StringUtils.split(exportDir, ',');
+    List<ImportedTableInfo.DirectoryMapping> dirs = new ArrayList<>(exportDirs.length);
+    for (String ed : exportDirs) {
+      ImportedTableInfo.DirectoryMapping dir = new ImportedTableInfo.DirectoryMapping();
+      dir.exportDir = ed;
+      dirs.add(dir);
+    }
+    return dirs;
+  }
+
+  Path findExportFile(Master env) throws AcceptableThriftTableOperationException {
+    Path exportFilePath = null;
+    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+      exportFilePath = new Path(dm.exportDir, Constants.EXPORT_FILE);
+      try {
+        if (env.getFileSystem().exists(exportFilePath)) {
+          break;
+        }
+        exportFilePath = null;
+      } catch (IOException ioe) {
+        exportFilePath = null;
+        log.warn("Non-Fatal IOException reading export file: {}", exportFilePath, ioe);
+      }
+    }
+
+    if (exportFilePath == null) {
+      log.warn("Unable to locate export metadata");
+      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
+          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+          "Unable to locate export metadata");
+    }
+
+    return exportFilePath;
   }
 }
