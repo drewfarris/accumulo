@@ -22,7 +22,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
@@ -36,7 +38,9 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class ImportTableTest {
 
@@ -127,10 +131,10 @@ public class ImportTableTest {
     VolumeManager volumeManager = EasyMock.createMock(VolumeManager.class);
     UniqueNameAllocator uniqueNameAllocator = EasyMock.createMock(UniqueNameAllocator.class);
 
-    String[] impDirs = {"hdfs://nn1:8020/import-dir-nn1", "hdfs://nn2:8020/import-dir-nn2",
+    String[] expDirs = {"hdfs://nn1:8020/import-dir-nn1", "hdfs://nn2:8020/import-dir-nn2",
         "hdfs://nn3:8020/import-dir-nn3"};
-    String joinedImpDirs = impDirs[0] + "," + impDirs[1] + "," + impDirs[2];
-    String[] volumes = {"hdfs://nn1:8020/apps/accumulo1", "hdfs://nn2:8020/applications/accumulo",
+    String joinedImpDirs = expDirs[0] + "," + expDirs[1] + "," + expDirs[2];
+    String[] tableDirs = {"hdfs://nn1:8020/apps/accumulo1/tables", "hdfs://nn2:8020/applications/accumulo/tables",
         "hdfs://nn3:8020/applications/accumulo"};
     String dirName = "abcd";
 
@@ -138,14 +142,14 @@ public class ImportTableTest {
     EasyMock.expect(master.getFileSystem()).andReturn(volumeManager);
     EasyMock.expect(context.getUniqueNameAllocator()).andReturn(uniqueNameAllocator);
     EasyMock.expect(
-        volumeManager.matchingFileSystem(EasyMock.eq(new Path(impDirs[0])), EasyMock.eq(volumes)))
-        .andReturn(new Path(volumes[0]));
+        volumeManager.matchingFileSystem(EasyMock.eq(new Path(expDirs[0])), EasyMock.eq(tableDirs)))
+        .andReturn(new Path(tableDirs[0]));
     EasyMock.expect(
-        volumeManager.matchingFileSystem(EasyMock.eq(new Path(impDirs[1])), EasyMock.eq(volumes)))
-        .andReturn(new Path(volumes[1]));
+        volumeManager.matchingFileSystem(EasyMock.eq(new Path(expDirs[1])), EasyMock.eq(tableDirs)))
+        .andReturn(new Path(tableDirs[1]));
     EasyMock.expect(
-        volumeManager.matchingFileSystem(EasyMock.eq(new Path(impDirs[2])), EasyMock.eq(volumes)))
-        .andReturn(new Path(volumes[2]));
+        volumeManager.matchingFileSystem(EasyMock.eq(new Path(expDirs[2])), EasyMock.eq(tableDirs)))
+        .andReturn(new Path(tableDirs[2]));
     EasyMock.expect(uniqueNameAllocator.getNextName()).andReturn(dirName).times(3);
 
     ImportedTableInfo ti = new ImportedTableInfo();
@@ -156,12 +160,12 @@ public class ImportTableTest {
     EasyMock.replay(master, context, volumeManager, uniqueNameAllocator);
 
     CreateImportDir ci = new CreateImportDir(ti);
-    ci.create(volumes, master);
+    ci.create(tableDirs, master);
     assertEquals(3, ti.directories.size());
     for (ImportedTableInfo.DirectoryMapping dm : ti.directories) {
       assertNotNull(dm.exportDir);
       assertNotNull(dm.importDir);
-      // assertTrue(dm.importDir.contains(Constants.HDFS_TABLES_DIR));
+      assertTrue(dm.importDir.contains(Constants.HDFS_TABLES_DIR));
       assertMatchingFilesystem(dm.exportDir, dm.importDir);
       assertTrue(
           dm.importDir.contains(ti.tableId.canonical() + "/" + Constants.BULK_PREFIX + dirName));

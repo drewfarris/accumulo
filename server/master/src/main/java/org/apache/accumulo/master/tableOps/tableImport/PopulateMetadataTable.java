@@ -93,6 +93,7 @@ class PopulateMetadataTable extends MasterRepo {
 
     try {
       VolumeManager fs = master.getFileSystem();
+      final String[] volumes = ServerConstants.getBaseUris(master.getContext());
 
       mbw = master.getContext().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
@@ -106,8 +107,6 @@ class PopulateMetadataTable extends MasterRepo {
         // This is a directory already prefixed with proper volume information e.g.
         // hdfs://localhost:8020/path/to/accumulo/tables/...
         final String bulkDir = dm.importDir;
-
-        final String[] volumes = ServerConstants.getBaseUris(master.getContext());
 
         ZipEntry zipEntry;
         while ((zipEntry = zis.getNextEntry()) != null) {

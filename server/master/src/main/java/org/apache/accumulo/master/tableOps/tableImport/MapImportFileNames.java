@@ -51,19 +51,17 @@ class MapImportFileNames extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
 
+    VolumeManager fs = environment.getFileSystem();
+    UniqueNameAllocator namer = environment.getContext().getUniqueNameAllocator();
+
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Path path = new Path(dm.importDir, "mappings.txt");
 
       BufferedWriter mappingsWriter = null;
 
       try {
-        VolumeManager fs = environment.getFileSystem();
-
         fs.mkdirs(new Path(dm.importDir));
-
         FileStatus[] files = fs.listStatus(new Path(dm.exportDir));
-
-        UniqueNameAllocator namer = environment.getContext().getUniqueNameAllocator();
 
         mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), UTF_8));
 
