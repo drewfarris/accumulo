@@ -39,7 +39,6 @@ import org.apache.accumulo.master.tableOps.MasterRepo;
 import org.apache.accumulo.master.tableOps.Utils;
 import org.apache.accumulo.master.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,11 +145,11 @@ public class ImportTable extends MasterRepo {
   }
 
   static List<ImportedTableInfo.DirectoryMapping> parseExportDir(String exportDir) {
-    if (exportDir == null) {
+    if (exportDir == null || exportDir.isEmpty()) {
       return Collections.emptyList();
     }
 
-    String[] exportDirs = StringUtils.split(exportDir, ',');
+    String[] exportDirs = exportDir.split(",");
     List<ImportedTableInfo.DirectoryMapping> dirs = new ArrayList<>(exportDirs.length);
     for (String ed : exportDirs) {
       ImportedTableInfo.DirectoryMapping dir = new ImportedTableInfo.DirectoryMapping();
