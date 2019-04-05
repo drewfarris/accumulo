@@ -77,6 +77,8 @@ import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.TDiskUsage;
+import org.apache.accumulo.core.client.impl.thrift.TableOperation;
+import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -1524,15 +1526,38 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(importDir != null, "importDir is null");
 
+
+    String[] importDirs = importDir.split(",");
     try {
-      importDir = checkPath(importDir, "Table", "").toString();
+      for (int i=0; i < importDirs.length; i++) {
+        importDirs[i] = checkPath(importDirs[i], "Table", "").toString();
+      }
     } catch (IOException e) {
       throw new AccumuloException(e);
     }
 
     try {
       FileSystem fs = new Path(importDir).getFileSystem(CachedConfiguration.getInstance());
-      Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
+      Path exportFilePath = null
+      for (String id: importDirs) {
+        exportFilePath = new Path(id, Constants.EXPORT_FILE);
+        try {
+          if (fs.exists(exportFilePath)) {
+            break;
+          }
+          exportFilePath = null;
+        } catch (IOException ioe) {
+          exportFilePath = null;
+          log.warn("Non-Fatal IOException reading export file: {}", exportFilePath, ioe);
+        }
+      }
+
+      if (exportFilePath == null) {
+        log.warn("Unable to locate export metadata");
+        throw new AccumuloException("Unable to locate export metadata");
+      }
+
+      Map<String,String> props = getExportedProps(fs, exportFilePath);
 
       for (Entry<String,String> entry : props.entrySet()) {
         if (Property.isClassProperty(entry.getKey())
