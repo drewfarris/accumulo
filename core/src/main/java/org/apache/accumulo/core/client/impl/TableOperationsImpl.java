@@ -1537,9 +1537,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     try {
-      FileSystem fs = new Path(importDir).getFileSystem(CachedConfiguration.getInstance());
+
       Path exportFilePath = null
       for (String id: importDirs) {
+        FileSystem fs = new Path(id).getFileSystem(CachedConfiguration.getInstance());
         exportFilePath = new Path(id, Constants.EXPORT_FILE);
         try {
           if (fs.exists(exportFilePath)) {
@@ -1557,6 +1558,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new AccumuloException("Unable to locate export metadata");
       }
 
+      FileSystem fs = exportFilePath.getFileSystem(CachedConfiguration.getInstance());
       Map<String,String> props = getExportedProps(fs, exportFilePath);
 
       for (Entry<String,String> entry : props.entrySet()) {
