@@ -95,7 +95,7 @@ public class ImportTable extends MasterRepo {
   public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
     Path exportFilePath = findExportFile(env);
 
-    tableInfo.exportFileDir = exportFilePath.toString();
+    tableInfo.exportFile = exportFilePath.toString();
 
     Integer exportVersion = null;
     Integer dataVersion = null;

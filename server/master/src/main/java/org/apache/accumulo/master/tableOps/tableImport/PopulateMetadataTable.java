@@ -86,7 +86,7 @@ class PopulateMetadataTable extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
 
-    Path path = new Path(tableInfo.exportFileDir, Constants.EXPORT_FILE);
+    Path path = new Path(tableInfo.exportFile);
 
     BatchWriter mbw = null;
     ZipInputStream zis = null;
