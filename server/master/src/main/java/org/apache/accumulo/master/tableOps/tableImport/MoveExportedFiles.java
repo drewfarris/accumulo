@@ -17,6 +17,7 @@
 package org.apache.accumulo.master.tableOps.tableImport;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -48,8 +49,8 @@ class MoveExportedFiles extends MasterRepo {
       VolumeManager fs = master.getFileSystem();
 
       for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-        Map<String,String> fileNameMappings = PopulateMetadataTable.readMappingFile(fs,
-            dm.importDir);
+        Map<String,String> fileNameMappings = new HashMap<>();
+        PopulateMetadataTable.readMappingFile(fs, tableInfo, dm.importDir, fileNameMappings);
 
         for (String oldFileName : fileNameMappings.keySet()) {
           if (!fs.exists(new Path(dm.exportDir, oldFileName))) {

@@ -131,7 +131,8 @@ public class ImportTableTest {
         "hdfs://nn3:8020/import-dir-nn3"};
     String joinedImpDirs = expDirs[0] + "," + expDirs[1] + "," + expDirs[2];
     String[] tableDirs = {"hdfs://nn1:8020/apps/accumulo1/tables",
-        "hdfs://nn2:8020/applications/accumulo/tables", "hdfs://nn3:8020/applications/accumulo"};
+        "hdfs://nn2:8020/applications/accumulo/tables",
+        "hdfs://nn3:8020/applications/accumulo/tables"};
     String dirName = "abcd";
 
     EasyMock.expect(master.getContext()).andReturn(context);
