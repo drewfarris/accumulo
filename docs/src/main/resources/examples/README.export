@@ -88,4 +88,14 @@ preserved.
     5;r srv:time []    M1343224500467
     5< srv:time []    M1343224500467
 
+When an import is performed the rfiles will be copied to the accumulo tables
+directory on the same volume that was the target of the distcp. It is also
+possible to import into multiple volumes by providing a comma-delimited list of
+directories from which to import rfiles.
 
+    root@test15> importtable table1_copy hdfs://nn1/table1_export_dest,hdfs://nn2/table1_export_dest
+
+This will look in both locations for a copy of the exportMetadata.zip file,
+which should be copied to one of those directions. In order to properly
+distribute files across multiple volumes, the end-user must manually perform the
+distcp to each volume.
