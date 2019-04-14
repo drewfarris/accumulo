@@ -154,6 +154,7 @@ public class ImportTable extends MasterRepo {
     String[] exportDirs = exportDir.split(",");
     List<ImportedTableInfo.DirectoryMapping> dirs = new ArrayList<>(exportDirs.length);
     for (String ed : exportDirs) {
+      log.info("Extracted import directory: {}", ed);
       ImportedTableInfo.DirectoryMapping dir = new ImportedTableInfo.DirectoryMapping();
       dir.exportDir = ed;
       dirs.add(dir);

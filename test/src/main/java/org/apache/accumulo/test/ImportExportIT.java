@@ -105,12 +105,12 @@ public class ImportExportIT extends AccumuloClusterHarness {
       Path exportDir = new Path(baseDir, "export");
       Path importDirA = new Path(baseDir, "import-a");
       Path importDirB = new Path(baseDir, "import-b");
-      for (Path p : new Path[] {exportDir, importDirA, importDirB }) {
+      for (Path p : new Path[] {exportDir, importDirA, importDirB}) {
         assertTrue("Failed to create " + baseDir, fs.mkdirs(p));
       }
 
       String importDirDlm = importDirA + "," + importDirB;
-      Path[] importDirAry = new Path[] { importDirA, importDirB };
+      Path[] importDirAry = new Path[] {importDirA, importDirB};
 
       log.info("Exporting table to {}", exportDir);
       log.info("Importing table from {}", importDirDlm);
