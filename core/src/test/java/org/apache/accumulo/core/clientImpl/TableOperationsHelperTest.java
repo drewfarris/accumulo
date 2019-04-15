@@ -191,7 +191,8 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void importTable(String tableName, String exportDir) {}
+    public void importTable(String tableName, String exportDir, boolean keepMappings,
+        boolean skipOnline) {}
 
     @Override
     public void exportTable(String tableName, String exportDir) {}

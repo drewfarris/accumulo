@@ -5978,6 +5978,22 @@ uint32_t AccumuloProxy_importTable_args::read(::apache::thrift::protocol::TProto
           xfer += iprot->skip(ftype);
         }
         break;
+      case 4:
+        if (ftype == ::apache::thrift::protocol::T_BOOL) {
+          xfer += iprot->readBool(this->keepMappings);
+          this->__isset.keepMappings = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
+      case 5:
+        if (ftype == ::apache::thrift::protocol::T_BOOL) {
+          xfer += iprot->readBool(this->skipOnline);
+          this->__isset.skipOnline = true;
+        } else {
+          xfer += iprot->skip(ftype);
+        }
+        break;
       default:
         xfer += iprot->skip(ftype);
         break;
@@ -6007,6 +6023,14 @@ uint32_t AccumuloProxy_importTable_args::write(::apache::thrift::protocol::TProt
   xfer += oprot->writeString(this->importDir);
   xfer += oprot->writeFieldEnd();
 
+  xfer += oprot->writeFieldBegin("keepMappings", ::apache::thrift::protocol::T_BOOL, 4);
+  xfer += oprot->writeBool(this->keepMappings);
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("skipOnline", ::apache::thrift::protocol::T_BOOL, 5);
+  xfer += oprot->writeBool(this->skipOnline);
+  xfer += oprot->writeFieldEnd();
+
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -6032,6 +6056,14 @@ uint32_t AccumuloProxy_importTable_pargs::write(::apache::thrift::protocol::TPro
 
   xfer += oprot->writeFieldBegin("importDir", ::apache::thrift::protocol::T_STRING, 3);
   xfer += oprot->writeString((*(this->importDir)));
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("keepMappings", ::apache::thrift::protocol::T_BOOL, 4);
+  xfer += oprot->writeBool((*(this->keepMappings)));
+  xfer += oprot->writeFieldEnd();
+
+  xfer += oprot->writeFieldBegin("skipOnline", ::apache::thrift::protocol::T_BOOL, 5);
+  xfer += oprot->writeBool((*(this->skipOnline)));
   xfer += oprot->writeFieldEnd();
 
   xfer += oprot->writeFieldStop();
@@ -28200,13 +28232,13 @@ void AccumuloProxyClient::recv_importDirectory()
   return;
 }
 
-void AccumuloProxyClient::importTable(const std::string& login, const std::string& tableName, const std::string& importDir)
+void AccumuloProxyClient::importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline)
 {
-  send_importTable(login, tableName, importDir);
+  send_importTable(login, tableName, importDir, keepMappings, skipOnline);
   recv_importTable();
 }
 
-void AccumuloProxyClient::send_importTable(const std::string& login, const std::string& tableName, const std::string& importDir)
+void AccumuloProxyClient::send_importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline)
 {
   int32_t cseqid = 0;
   oprot_->writeMessageBegin("importTable", ::apache::thrift::protocol::T_CALL, cseqid);
@@ -28215,6 +28247,8 @@ void AccumuloProxyClient::send_importTable(const std::string& login, const std::
   args.login = &login;
   args.tableName = &tableName;
   args.importDir = &importDir;
+  args.keepMappings = &keepMappings;
+  args.skipOnline = &skipOnline;
   args.write(oprot_);
 
   oprot_->writeMessageEnd();
@@ -34574,7 +34608,7 @@ void AccumuloProxyProcessor::process_importTable(int32_t seqid, ::apache::thrift
 
   AccumuloProxy_importTable_result result;
   try {
-    iface_->importTable(args.login, args.tableName, args.importDir);
+    iface_->importTable(args.login, args.tableName, args.importDir, args.keepMappings, args.skipOnline);
   } catch (TableExistsException &ouch1) {
     result.ouch1 = ouch1;
     result.__isset.ouch1 = true;
@@ -41263,13 +41297,13 @@ void AccumuloProxyConcurrentClient::recv_importDirectory(const int32_t seqid)
   } // end while(true)
 }
 
-void AccumuloProxyConcurrentClient::importTable(const std::string& login, const std::string& tableName, const std::string& importDir)
+void AccumuloProxyConcurrentClient::importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline)
 {
-  int32_t seqid = send_importTable(login, tableName, importDir);
+  int32_t seqid = send_importTable(login, tableName, importDir, keepMappings, skipOnline);
   recv_importTable(seqid);
 }
 
-int32_t AccumuloProxyConcurrentClient::send_importTable(const std::string& login, const std::string& tableName, const std::string& importDir)
+int32_t AccumuloProxyConcurrentClient::send_importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline)
 {
   int32_t cseqid = this->sync_.generateSeqId();
   ::apache::thrift::async::TConcurrentSendSentry sentry(&this->sync_);
@@ -41279,6 +41313,8 @@ int32_t AccumuloProxyConcurrentClient::send_importTable(const std::string& login
   args.login = &login;
   args.tableName = &tableName;
   args.importDir = &importDir;
+  args.keepMappings = &keepMappings;
+  args.skipOnline = &skipOnline;
   args.write(oprot_);
 
   oprot_->writeMessageEnd();

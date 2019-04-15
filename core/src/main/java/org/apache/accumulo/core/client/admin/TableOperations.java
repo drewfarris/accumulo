@@ -156,9 +156,13 @@ public interface TableOperations {
    *          Name of a table to create and import into.
    * @param importDir
    *          Directory that contains the files copied by distcp from exportTable
+   * @param keepMappings
+   *          Retain a copy of the mappings file in the import directories after import is complete
+   * @param skipOnline
+   *          Avoid setting the table online after the import is complete.
    * @since 1.5.0
    */
-  void importTable(String tableName, String importDir)
+  void importTable(String tableName, String importDir, boolean keepMappings, boolean skipOnline)
       throws TableExistsException, AccumuloException, AccumuloSecurityException;
 
   /**

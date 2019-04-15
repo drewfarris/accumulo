@@ -34,10 +34,13 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -98,7 +101,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       Path baseDir = new Path(tmp, getClass().getName());
       if (fs.exists(baseDir)) {
         log.info("{} exists on filesystem, deleting", baseDir);
-        assertTrue("Failed to deleted " + baseDir, fs.delete(baseDir, true));
+        assertTrue("Failed to delete " + baseDir, fs.delete(baseDir, true));
       }
       log.info("Creating {}", baseDir);
       assertTrue("Failed to create " + baseDir, fs.mkdirs(baseDir));
@@ -144,11 +147,27 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
 
       // Import the exported data into a new table
-      client.tableOperations().importTable(destTable, importDirDlm);
+      client.tableOperations().importTable(destTable, importDirDlm, true, true);
+
+      // Verify that one mappings.txt exists for each import directory;
 
       // Get the table ID for the table that the importtable command created
       final String tableId = client.tableOperations().tableIdMap().get(destTable);
       assertNotNull(tableId);
+
+      // TODO: Verify that the table was created in offline state and did not come online unless
+      // explicitly instructed to do so.
+      ClientContext cc = (ClientContext) client;
+      TableId tid = TableId.of(tableId);
+      TableState currentState;
+
+      currentState = Tables.getTableState(cc, tid, true);
+      assertEquals(TableState.NEW, currentState);
+
+      client.tableOperations().online(destTable, true);
+
+      currentState = Tables.getTableState(cc, tid, true);
+      assertEquals(TableState.ONLINE, currentState);
 
       // Get all `file` colfams from the metadata table for the new table
       log.info("Imported into table with ID: {}", tableId);

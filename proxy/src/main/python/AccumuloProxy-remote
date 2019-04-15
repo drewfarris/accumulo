@@ -58,7 +58,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  string getMaxRow(string login, string tableName,  auths, string startRow, bool startInclusive, string endRow, bool endInclusive)')
     print('   getTableProperties(string login, string tableName)')
     print('  void importDirectory(string login, string tableName, string importDir, string failureDir, bool setTime)')
-    print('  void importTable(string login, string tableName, string importDir)')
+    print('  void importTable(string login, string tableName, string importDir, bool keepMappings, bool skipOnline)')
     print('   listSplits(string login, string tableName, i32 maxSplits)')
     print('   listTables(string login)')
     print('   listIterators(string login, string tableName)')
@@ -338,10 +338,10 @@ elif cmd == 'importDirectory':
     pp.pprint(client.importDirectory(args[0], args[1], args[2], args[3], eval(args[4]),))
 
 elif cmd == 'importTable':
-    if len(args) != 3:
-        print('importTable requires 3 args')
+    if len(args) != 5:
+        print('importTable requires 5 args')
         sys.exit(1)
-    pp.pprint(client.importTable(args[0], args[1], args[2],))
+    pp.pprint(client.importTable(args[0], args[1], args[2], eval(args[3]), eval(args[4]),))
 
 elif cmd == 'listSplits':
     if len(args) != 3:

@@ -632,7 +632,7 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
   public void importTableLoginFailure() throws Exception {
-    client.importTable(badLogin, "testify", "/tmp");
+    client.importTable(badLogin, "testify", "/tmp", false, false);
   }
 
   @Test(expected = AccumuloSecurityException.class, timeout = 5000)
@@ -2101,14 +2101,14 @@ public abstract class SimpleProxyBase extends SharedMiniClusterBase {
       }
     }
     client.deleteTable(creds, tableName);
-    client.importTable(creds, "testify", destDir.toString());
+    client.importTable(creds, "testify", destDir.toString(), false, false);
     assertScan(expected, "testify");
     client.deleteTable(creds, "testify");
 
     try {
       // ACCUMULO-1558 a second import from the same dir should fail, the first import moved the
       // files
-      client.importTable(creds, "testify2", destDir.toString());
+      client.importTable(creds, "testify2", destDir.toString(), false, false);
       fail();
     } catch (Exception e) {}
 

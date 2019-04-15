@@ -486,6 +486,11 @@ class FateServiceHandler implements FateService.Iface {
         TableOperation tableOp = TableOperation.IMPORT;
         String tableName = validateTableNameArgument(arguments.get(0), tableOp, NOT_SYSTEM);
         String exportDir = ByteBufferUtil.toString(arguments.get(1));
+        byte[] argArray = ByteBufferUtil.toBytes(arguments.get(2));
+        byte booleanArgs = argArray[0];
+        boolean keepMappings = (booleanArgs & 0x1) == 0x1;
+        boolean skipOnline = (booleanArgs & 0x2) == 0x2;
+
         NamespaceId namespaceId;
         try {
           namespaceId = Namespaces.getNamespaceId(master.getContext(),
@@ -506,9 +511,8 @@ class FateServiceHandler implements FateService.Iface {
         if (!canImport)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
-        master.fate.seedTransaction(opid,
-            new TraceRepo<>(new ImportTable(c.getPrincipal(), tableName, exportDir, namespaceId)),
-            autoCleanup);
+        master.fate.seedTransaction(opid, new TraceRepo<>(new ImportTable(c.getPrincipal(),
+            tableName, exportDir, namespaceId, keepMappings, skipOnline)), autoCleanup);
         break;
       }
       case TABLE_EXPORT: {

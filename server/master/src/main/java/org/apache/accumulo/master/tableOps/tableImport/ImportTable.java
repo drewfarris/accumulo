@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -54,11 +55,14 @@ public class ImportTable extends MasterRepo {
 
   private ImportedTableInfo tableInfo;
 
-  public ImportTable(String user, String tableName, String exportDir, NamespaceId namespaceId) {
+  public ImportTable(String user, String tableName, String exportDir, NamespaceId namespaceId,
+      boolean keepMappings, boolean skipOnline) {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.namespaceId = namespaceId;
+    tableInfo.keepMappings = keepMappings;
+    tableInfo.skipOnline = skipOnline;
     tableInfo.directories = parseExportDir(exportDir);
   }
 
@@ -98,7 +102,7 @@ public class ImportTable extends MasterRepo {
     String[] exportDirs = tableInfo.directories.stream().map(dm -> dm.exportDir)
         .toArray(String[]::new);
 
-    log.debug("Searching for export file in {}", exportDirs);
+    log.debug("Searching for export file in {}", Arrays.toString(exportDirs));
 
     Integer exportVersion = null;
     Integer dataVersion = null;

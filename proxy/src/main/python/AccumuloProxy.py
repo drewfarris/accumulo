@@ -247,12 +247,14 @@ class Iface(object):
         """
         pass
 
-    def importTable(self, login, tableName, importDir):
+    def importTable(self, login, tableName, importDir, keepMappings, skipOnline):
         """
         Parameters:
          - login
          - tableName
          - importDir
+         - keepMappings
+         - skipOnline
 
         """
         pass
@@ -1846,23 +1848,27 @@ class Client(Iface):
             raise result.ouch4
         return
 
-    def importTable(self, login, tableName, importDir):
+    def importTable(self, login, tableName, importDir, keepMappings, skipOnline):
         """
         Parameters:
          - login
          - tableName
          - importDir
+         - keepMappings
+         - skipOnline
 
         """
-        self.send_importTable(login, tableName, importDir)
+        self.send_importTable(login, tableName, importDir, keepMappings, skipOnline)
         self.recv_importTable()
 
-    def send_importTable(self, login, tableName, importDir):
+    def send_importTable(self, login, tableName, importDir, keepMappings, skipOnline):
         self._oprot.writeMessageBegin('importTable', TMessageType.CALL, self._seqid)
         args = importTable_args()
         args.login = login
         args.tableName = tableName
         args.importDir = importDir
+        args.keepMappings = keepMappings
+        args.skipOnline = skipOnline
         args.write(self._oprot)
         self._oprot.writeMessageEnd()
         self._oprot.trans.flush()
@@ -5682,7 +5688,7 @@ class Processor(Iface, TProcessor):
         iprot.readMessageEnd()
         result = importTable_result()
         try:
-            self._handler.importTable(args.login, args.tableName, args.importDir)
+            self._handler.importTable(args.login, args.tableName, args.importDir, args.keepMappings, args.skipOnline)
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
@@ -11892,14 +11898,18 @@ class importTable_args(object):
      - login
      - tableName
      - importDir
+     - keepMappings
+     - skipOnline
 
     """
 
 
-    def __init__(self, login=None, tableName=None, importDir=None,):
+    def __init__(self, login=None, tableName=None, importDir=None, keepMappings=None, skipOnline=None,):
         self.login = login
         self.tableName = tableName
         self.importDir = importDir
+        self.keepMappings = keepMappings
+        self.skipOnline = skipOnline
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -11925,6 +11935,16 @@ class importTable_args(object):
                     self.importDir = iprot.readString().decode('utf-8') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.BOOL:
+                    self.keepMappings = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 5:
+                if ftype == TType.BOOL:
+                    self.skipOnline = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -11946,6 +11966,14 @@ class importTable_args(object):
         if self.importDir is not None:
             oprot.writeFieldBegin('importDir', TType.STRING, 3)
             oprot.writeString(self.importDir.encode('utf-8') if sys.version_info[0] == 2 else self.importDir)
+            oprot.writeFieldEnd()
+        if self.keepMappings is not None:
+            oprot.writeFieldBegin('keepMappings', TType.BOOL, 4)
+            oprot.writeBool(self.keepMappings)
+            oprot.writeFieldEnd()
+        if self.skipOnline is not None:
+            oprot.writeFieldBegin('skipOnline', TType.BOOL, 5)
+            oprot.writeBool(self.skipOnline)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -11969,6 +11997,8 @@ importTable_args.thrift_spec = (
     (1, TType.STRING, 'login', 'BINARY', None, ),  # 1
     (2, TType.STRING, 'tableName', 'UTF8', None, ),  # 2
     (3, TType.STRING, 'importDir', 'UTF8', None, ),  # 3
+    (4, TType.BOOL, 'keepMappings', None, None, ),  # 4
+    (5, TType.BOOL, 'skipOnline', None, None, ),  # 5
 )
 
 

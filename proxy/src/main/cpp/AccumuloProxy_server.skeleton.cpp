@@ -136,7 +136,7 @@ class AccumuloProxyHandler : virtual public AccumuloProxyIf {
     printf("importDirectory\n");
   }
 
-  void importTable(const std::string& login, const std::string& tableName, const std::string& importDir) {
+  void importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline) {
     // Your implementation goes here
     printf("importTable\n");
   }

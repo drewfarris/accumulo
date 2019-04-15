@@ -1654,13 +1654,15 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
 
   @Override
-  public void importTable(ByteBuffer login, String tableName, String importDir)
+  public void importTable(ByteBuffer login, String tableName, String importDir,
+      boolean keepMappings, boolean skipOnline)
       throws org.apache.accumulo.proxy.thrift.AccumuloException,
       org.apache.accumulo.proxy.thrift.AccumuloSecurityException,
       org.apache.accumulo.proxy.thrift.TableExistsException, TException {
 
     try {
-      getConnector(login).tableOperations().importTable(tableName, importDir);
+      getConnector(login).tableOperations().importTable(tableName, importDir, keepMappings,
+          skipOnline);
     } catch (TableExistsException e) {
       throw new org.apache.accumulo.proxy.thrift.TableExistsException(e.toString());
     } catch (Exception e) {
