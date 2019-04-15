@@ -76,7 +76,8 @@ class PopulateMetadataTable extends MasterRepo {
         prev = fileNameMappings.put(sa[0], importDir + "/" + sa[1]);
 
         if (prev != null) {
-          String msg = "File exists in multiple import directories: '" + sa[0] + "'";
+          String msg = "File exists in multiple import directories: '"
+              + sa[0].replaceAll("[\r\n]", "") + "'";
           log.warn(msg);
           throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
               tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER, msg);
