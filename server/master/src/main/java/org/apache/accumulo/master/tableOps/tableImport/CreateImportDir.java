@@ -50,6 +50,18 @@ class CreateImportDir extends MasterRepo {
     return new MapImportFileNames(tableInfo);
   }
 
+  /**
+   * Generate destination directory names under the accumulo table directories imported rfiles.
+   * These directories must be on the same volume as each file being imported.
+   *
+   * @param tableDirs
+   *          the set of table directories on HDFS where files will be moved e.g:
+   *          hdfs://volume1/accumulo/tables/
+   * @param master
+   *          the master instance performing the table import.
+   * @throws IOException
+   *           if any import directory does not reside on a volume configured for accumulo.
+   */
   void create(String[] tableDirs, Master master) throws IOException {
 
     VolumeManager fs = master.getFileSystem();

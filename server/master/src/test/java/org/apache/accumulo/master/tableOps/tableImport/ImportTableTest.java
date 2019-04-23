@@ -96,31 +96,6 @@ public class ImportTableTest {
   }
 
   @Test
-  public void testFindExportFile() throws Exception {
-    Master master = EasyMock.createMock(Master.class);
-    VolumeManager volumeManager = EasyMock.createMock(VolumeManager.class);
-
-    String[] volumes = {"hdfs://nn1:8020/apps/accumulo1", "hdfs://nn2:8020/applications/accumulo",
-        "hdfs://nn3:8020/applications/accumulo"};
-
-    EasyMock.expect(master.getFileSystem()).andReturn(volumeManager).times(2);
-    EasyMock.expect(volumeManager.exists(EasyMock.eq(new Path(volumes[0], Constants.EXPORT_FILE))))
-        .andReturn(Boolean.FALSE);
-    EasyMock.expect(volumeManager.exists(EasyMock.eq(new Path(volumes[1], Constants.EXPORT_FILE))))
-        .andReturn(Boolean.TRUE);
-
-    ImportTable it = new ImportTable("testUser", "testTable", volumes[0] + "," + volumes[1], null);
-
-    EasyMock.replay(master, volumeManager);
-
-    Path p = it.findExportFile(master);
-
-    assertEquals(new Path(volumes[1], Constants.EXPORT_FILE), p);
-
-    EasyMock.verify(master, volumeManager);
-  }
-
-  @Test
   public void testCreateImportDir() throws Exception {
     Master master = EasyMock.createMock(Master.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);

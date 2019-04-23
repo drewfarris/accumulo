@@ -22,15 +22,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -95,14 +95,20 @@ public class ImportTable extends MasterRepo {
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
   public void checkVersions(Master env) throws AcceptableThriftTableOperationException {
-    Path exportFilePath = findExportFile(env);
+    String[] exportDirs = tableInfo.directories.stream().map(dm -> dm.exportDir)
+        .toArray(String[]::new);
 
-    tableInfo.exportFile = exportFilePath.toString();
+    log.debug("Searching for export file in {}", exportDirs);
 
     Integer exportVersion = null;
     Integer dataVersion = null;
 
-    try (ZipInputStream zis = new ZipInputStream(env.getFileSystem().open(exportFilePath))) {
+    try {
+      Path exportFilePath = TableOperationsImpl.findExportFile(env.getContext(), exportDirs);
+      tableInfo.exportFile = exportFilePath.toString();
+      log.info("Export file is {}", tableInfo.exportFile);
+
+      ZipInputStream zis = new ZipInputStream(env.getFileSystem().open(exportFilePath));
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
@@ -119,11 +125,11 @@ public class ImportTable extends MasterRepo {
           break;
         }
       }
-    } catch (IOException ioe) {
-      log.warn("{}", ioe.getMessage(), ioe);
+    } catch (IOException | AccumuloException e) {
+      log.warn("{}", e.getMessage(), e);
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Failed to read export metadata " + ioe.getMessage());
+          "Failed to read export metadata " + e.getMessage());
     }
 
     if (exportVersion == null || exportVersion > ExportTable.VERSION)
@@ -160,34 +166,5 @@ public class ImportTable extends MasterRepo {
       dirs.add(dir);
     }
     return dirs;
-  }
-
-  Path findExportFile(Master env) throws AcceptableThriftTableOperationException {
-    LinkedHashSet<Path> exportFiles = new LinkedHashSet<>();
-    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      Path exportFilePath = new Path(dm.exportDir, Constants.EXPORT_FILE);
-      try {
-        if (env.getFileSystem().exists(exportFilePath)) {
-          exportFiles.add(exportFilePath);
-        }
-      } catch (IOException ioe) {
-        log.warn("Non-Fatal IOException reading export file: {}", exportFilePath, ioe);
-      }
-    }
-
-    if (exportFiles.size() > 1) {
-      String fileList = Arrays.toString(exportFiles.toArray());
-      log.warn("Found multiple export metadata files: " + fileList);
-      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
-          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Found multiple export metadata files: " + fileList);
-    } else if (exportFiles.isEmpty()) {
-      log.warn("Unable to locate export metadata");
-      throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
-          TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Unable to locate export metadata");
-    }
-
-    return exportFiles.iterator().next();
   }
 }

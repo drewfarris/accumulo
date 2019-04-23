@@ -1452,6 +1452,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return finalUsages;
   }
 
+  /**
+   * Search multiple directories for exportMetadata.zip, the control file used for the importable
+   * command.
+   *
+   * @param context
+   *          used to obtain filesystem based on configuration
+   * @param importDirs
+   *          the list of directories to search.
+   * @return the Path representing the location of the file.
+   * @throws AccumuloException
+   *           if zero or more than one copy of the exportMetadata.zip file are found in the
+   *           directories provided.
+   */
   public static Path findExportFile(ClientContext context, String[] importDirs)
       throws AccumuloException {
     LinkedHashSet<Path> exportFiles = new LinkedHashSet<>();
