@@ -48,11 +48,14 @@ public class ImportTable extends MasterRepo {
 
   private ImportedTableInfo tableInfo;
 
-  public ImportTable(String user, String tableName, String exportDir, String namespaceId) {
+  public ImportTable(String user, String tableName, String exportDir, String namespaceId,
+      boolean keepMappings, boolean skipOnline) {
     tableInfo = new ImportedTableInfo();
     tableInfo.tableName = tableName;
     tableInfo.user = user;
     tableInfo.namespaceId = namespaceId;
+    tableInfo.keepMappings = keepMappings;
+    tableInfo.skipOnline = skipOnline;
     tableInfo.directories = parseExportDir(exportDir);
   }
 

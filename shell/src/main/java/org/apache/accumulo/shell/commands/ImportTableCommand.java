@@ -23,15 +23,32 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 
 public class ImportTableCommand extends Command {
+
+  private Option keepMappingsOption;
+  private Option skipOnlineOption;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
 
-    shellState.getConnector().tableOperations().importTable(cl.getArgs()[0], cl.getArgs()[1]);
+    boolean keepMappings = false;
+    boolean skipOnline = false;
+
+    if (cl.hasOption(keepMappingsOption.getOpt())) {
+      keepMappings = true;
+    }
+
+    if (cl.hasOption(skipOnlineOption.getOpt())) {
+      skipOnline = true;
+    }
+
+    shellState.getConnector().tableOperations().importTable(cl.getArgs()[0], cl.getArgs()[1],
+        keepMappings, skipOnline);
     return 0;
   }
 
@@ -43,6 +60,18 @@ public class ImportTableCommand extends Command {
   @Override
   public String description() {
     return "imports a table";
+  }
+
+  @Override
+  public Options getOptions() {
+    final Options o = new Options();
+    keepMappingsOption = new Option("k", "keepMappings", false,
+        "keep the mappings files generated in the import process");
+    o.addOption(keepMappingsOption);
+    skipOnlineOption = new Option("s", "skipOnline", false,
+        "do not put the table online after the import is complete");
+    o.addOption(skipOnlineOption);
+    return o;
   }
 
   @Override

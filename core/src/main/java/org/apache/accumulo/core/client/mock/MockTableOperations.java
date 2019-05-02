@@ -494,7 +494,8 @@ class MockTableOperations extends TableOperationsHelper {
   }
 
   @Override
-  public void importTable(String tableName, String exportDir)
+  public void importTable(String tableName, String exportDir, boolean keepMappings,
+      boolean skipOnline)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     throw new NotImplementedException();
   }

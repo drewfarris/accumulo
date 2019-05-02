@@ -41,11 +41,15 @@ class FinishImportTable extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
 
-    for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      env.getFileSystem().deleteRecursively(new Path(dm.importDir, "mappings.txt"));
+    if (!tableInfo.keepMappings) {
+      for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
+        env.getFileSystem().deleteRecursively(new Path(dm.importDir, "mappings.txt"));
+      }
     }
 
-    TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+    if (!tableInfo.skipOnline) {
+      TableManager.getInstance().transitionTableState(tableInfo.tableId, TableState.ONLINE);
+    }
 
     Utils.unreserveNamespace(tableInfo.namespaceId, tid, false);
     Utils.unreserveTable(tableInfo.tableId, tid, true);

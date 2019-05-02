@@ -545,6 +545,8 @@ service AccumuloProxy {
     1:binary login
     2:string tableName
     3:string importDir
+    4:bool keepMappings
+    5:bool skipOnline
   ) throws (
     1:TableExistsException ouch1
     2:AccumuloException ouch2

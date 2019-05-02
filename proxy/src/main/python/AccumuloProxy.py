@@ -227,12 +227,14 @@ class Iface:
     """
     pass
 
-  def importTable(self, login, tableName, importDir):
+  def importTable(self, login, tableName, importDir, keepMappings, skipOnline):
     """
     Parameters:
      - login
      - tableName
      - importDir
+     - keepMappings
+     - skipOnline
     """
     pass
 
@@ -1728,22 +1730,26 @@ class Client(Iface):
       raise result.ouch4
     return
 
-  def importTable(self, login, tableName, importDir):
+  def importTable(self, login, tableName, importDir, keepMappings, skipOnline):
     """
     Parameters:
      - login
      - tableName
      - importDir
+     - keepMappings
+     - skipOnline
     """
-    self.send_importTable(login, tableName, importDir)
+    self.send_importTable(login, tableName, importDir, keepMappings, skipOnline)
     self.recv_importTable()
 
-  def send_importTable(self, login, tableName, importDir):
+  def send_importTable(self, login, tableName, importDir, keepMappings, skipOnline):
     self._oprot.writeMessageBegin('importTable', TMessageType.CALL, self._seqid)
     args = importTable_args()
     args.login = login
     args.tableName = tableName
     args.importDir = importDir
+    args.keepMappings = keepMappings
+    args.skipOnline = skipOnline
     args.write(self._oprot)
     self._oprot.writeMessageEnd()
     self._oprot.trans.flush()
@@ -5405,7 +5411,7 @@ class Processor(Iface, TProcessor):
     iprot.readMessageEnd()
     result = importTable_result()
     try:
-      self._handler.importTable(args.login, args.tableName, args.importDir)
+      self._handler.importTable(args.login, args.tableName, args.importDir, args.keepMappings, args.skipOnline)
       msg_type = TMessageType.REPLY
     except (TTransport.TTransportException, KeyboardInterrupt, SystemExit):
       raise
@@ -11518,6 +11524,8 @@ class importTable_args:
    - login
    - tableName
    - importDir
+   - keepMappings
+   - skipOnline
   """
 
   thrift_spec = (
@@ -11525,12 +11533,16 @@ class importTable_args:
     (1, TType.STRING, 'login', None, None, ), # 1
     (2, TType.STRING, 'tableName', None, None, ), # 2
     (3, TType.STRING, 'importDir', None, None, ), # 3
+    (4, TType.BOOL, 'keepMappings', None, None, ), # 4
+    (5, TType.BOOL, 'skipOnline', None, None, ), # 5
   )
 
-  def __init__(self, login=None, tableName=None, importDir=None,):
+  def __init__(self, login=None, tableName=None, importDir=None, keepMappings=None, skipOnline=None,):
     self.login = login
     self.tableName = tableName
     self.importDir = importDir
+    self.keepMappings = keepMappings
+    self.skipOnline = skipOnline
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -11556,6 +11568,16 @@ class importTable_args:
           self.importDir = iprot.readString()
         else:
           iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.BOOL:
+          self.keepMappings = iprot.readBool()
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.BOOL:
+          self.skipOnline = iprot.readBool()
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -11578,6 +11600,14 @@ class importTable_args:
       oprot.writeFieldBegin('importDir', TType.STRING, 3)
       oprot.writeString(self.importDir)
       oprot.writeFieldEnd()
+    if self.keepMappings is not None:
+      oprot.writeFieldBegin('keepMappings', TType.BOOL, 4)
+      oprot.writeBool(self.keepMappings)
+      oprot.writeFieldEnd()
+    if self.skipOnline is not None:
+      oprot.writeFieldBegin('skipOnline', TType.BOOL, 5)
+      oprot.writeBool(self.skipOnline)
+      oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 
@@ -11590,6 +11620,8 @@ class importTable_args:
     value = (value * 31) ^ hash(self.login)
     value = (value * 31) ^ hash(self.tableName)
     value = (value * 31) ^ hash(self.importDir)
+    value = (value * 31) ^ hash(self.keepMappings)
+    value = (value * 31) ^ hash(self.skipOnline)
     return value
 
   def __repr__(self):

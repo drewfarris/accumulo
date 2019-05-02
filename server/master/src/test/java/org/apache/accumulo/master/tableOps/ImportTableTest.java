@@ -108,7 +108,8 @@ public class ImportTableTest {
     EasyMock.expect(volumeManager.exists(EasyMock.eq(new Path(volumes[1], Constants.EXPORT_FILE))))
         .andReturn(Boolean.TRUE);
 
-    ImportTable it = new ImportTable("testUser", "testTable", volumes[0] + "," + volumes[1], null);
+    ImportTable it = new ImportTable("testUser", "testTable", volumes[0] + "," + volumes[1], null,
+        false, false);
 
     EasyMock.replay(master, volumeManager);
 

@@ -57,7 +57,7 @@ class AccumuloProxyIf {
   virtual void getMaxRow(std::string& _return, const std::string& login, const std::string& tableName, const std::set<std::string> & auths, const std::string& startRow, const bool startInclusive, const std::string& endRow, const bool endInclusive) = 0;
   virtual void getTableProperties(std::map<std::string, std::string> & _return, const std::string& login, const std::string& tableName) = 0;
   virtual void importDirectory(const std::string& login, const std::string& tableName, const std::string& importDir, const std::string& failureDir, const bool setTime) = 0;
-  virtual void importTable(const std::string& login, const std::string& tableName, const std::string& importDir) = 0;
+  virtual void importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline) = 0;
   virtual void listSplits(std::vector<std::string> & _return, const std::string& login, const std::string& tableName, const int32_t maxSplits) = 0;
   virtual void listTables(std::set<std::string> & _return, const std::string& login) = 0;
   virtual void listIterators(std::map<std::string, std::set<IteratorScope::type> > & _return, const std::string& login, const std::string& tableName) = 0;
@@ -227,7 +227,7 @@ class AccumuloProxyNull : virtual public AccumuloProxyIf {
   void importDirectory(const std::string& /* login */, const std::string& /* tableName */, const std::string& /* importDir */, const std::string& /* failureDir */, const bool /* setTime */) {
     return;
   }
-  void importTable(const std::string& /* login */, const std::string& /* tableName */, const std::string& /* importDir */) {
+  void importTable(const std::string& /* login */, const std::string& /* tableName */, const std::string& /* importDir */, const bool /* keepMappings */, const bool /* skipOnline */) {
     return;
   }
   void listSplits(std::vector<std::string> & /* _return */, const std::string& /* login */, const std::string& /* tableName */, const int32_t /* maxSplits */) {
@@ -3292,10 +3292,12 @@ class AccumuloProxy_importDirectory_presult {
 };
 
 typedef struct _AccumuloProxy_importTable_args__isset {
-  _AccumuloProxy_importTable_args__isset() : login(false), tableName(false), importDir(false) {}
+  _AccumuloProxy_importTable_args__isset() : login(false), tableName(false), importDir(false), keepMappings(false), skipOnline(false) {}
   bool login :1;
   bool tableName :1;
   bool importDir :1;
+  bool keepMappings :1;
+  bool skipOnline :1;
 } _AccumuloProxy_importTable_args__isset;
 
 class AccumuloProxy_importTable_args {
@@ -3303,13 +3305,15 @@ class AccumuloProxy_importTable_args {
 
   AccumuloProxy_importTable_args(const AccumuloProxy_importTable_args&);
   AccumuloProxy_importTable_args& operator=(const AccumuloProxy_importTable_args&);
-  AccumuloProxy_importTable_args() : login(), tableName(), importDir() {
+  AccumuloProxy_importTable_args() : login(), tableName(), importDir(), keepMappings(0), skipOnline(0) {
   }
 
   virtual ~AccumuloProxy_importTable_args() throw();
   std::string login;
   std::string tableName;
   std::string importDir;
+  bool keepMappings;
+  bool skipOnline;
 
   _AccumuloProxy_importTable_args__isset __isset;
 
@@ -3319,6 +3323,10 @@ class AccumuloProxy_importTable_args {
 
   void __set_importDir(const std::string& val);
 
+  void __set_keepMappings(const bool val);
+
+  void __set_skipOnline(const bool val);
+
   bool operator == (const AccumuloProxy_importTable_args & rhs) const
   {
     if (!(login == rhs.login))
@@ -3326,6 +3334,10 @@ class AccumuloProxy_importTable_args {
     if (!(tableName == rhs.tableName))
       return false;
     if (!(importDir == rhs.importDir))
+      return false;
+    if (!(keepMappings == rhs.keepMappings))
+      return false;
+    if (!(skipOnline == rhs.skipOnline))
       return false;
     return true;
   }
@@ -3349,6 +3361,8 @@ class AccumuloProxy_importTable_pargs {
   const std::string* login;
   const std::string* tableName;
   const std::string* importDir;
+  const bool* keepMappings;
+  const bool* skipOnline;
 
   uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
 
@@ -13666,8 +13680,8 @@ class AccumuloProxyClient : virtual public AccumuloProxyIf {
   void importDirectory(const std::string& login, const std::string& tableName, const std::string& importDir, const std::string& failureDir, const bool setTime);
   void send_importDirectory(const std::string& login, const std::string& tableName, const std::string& importDir, const std::string& failureDir, const bool setTime);
   void recv_importDirectory();
-  void importTable(const std::string& login, const std::string& tableName, const std::string& importDir);
-  void send_importTable(const std::string& login, const std::string& tableName, const std::string& importDir);
+  void importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline);
+  void send_importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline);
   void recv_importTable();
   void listSplits(std::vector<std::string> & _return, const std::string& login, const std::string& tableName, const int32_t maxSplits);
   void send_listSplits(const std::string& login, const std::string& tableName, const int32_t maxSplits);
@@ -14337,13 +14351,13 @@ class AccumuloProxyMultiface : virtual public AccumuloProxyIf {
     ifaces_[i]->importDirectory(login, tableName, importDir, failureDir, setTime);
   }
 
-  void importTable(const std::string& login, const std::string& tableName, const std::string& importDir) {
+  void importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->importTable(login, tableName, importDir);
+      ifaces_[i]->importTable(login, tableName, importDir, keepMappings, skipOnline);
     }
-    ifaces_[i]->importTable(login, tableName, importDir);
+    ifaces_[i]->importTable(login, tableName, importDir, keepMappings, skipOnline);
   }
 
   void listSplits(std::vector<std::string> & _return, const std::string& login, const std::string& tableName, const int32_t maxSplits) {
@@ -15177,8 +15191,8 @@ class AccumuloProxyConcurrentClient : virtual public AccumuloProxyIf {
   void importDirectory(const std::string& login, const std::string& tableName, const std::string& importDir, const std::string& failureDir, const bool setTime);
   int32_t send_importDirectory(const std::string& login, const std::string& tableName, const std::string& importDir, const std::string& failureDir, const bool setTime);
   void recv_importDirectory(const int32_t seqid);
-  void importTable(const std::string& login, const std::string& tableName, const std::string& importDir);
-  int32_t send_importTable(const std::string& login, const std::string& tableName, const std::string& importDir);
+  void importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline);
+  int32_t send_importTable(const std::string& login, const std::string& tableName, const std::string& importDir, const bool keepMappings, const bool skipOnline);
   void recv_importTable(const int32_t seqid);
   void listSplits(std::vector<std::string> & _return, const std::string& login, const std::string& tableName, const int32_t maxSplits);
   int32_t send_listSplits(const std::string& login, const std::string& tableName, const int32_t maxSplits);

@@ -99,7 +99,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
     Path baseDir = new Path(tmp, getClass().getName());
     if (fs.exists(baseDir)) {
       log.info("{} exists on filesystem, deleting", baseDir);
-      assertTrue("Failed to deleted " + baseDir, fs.delete(baseDir, true));
+      assertTrue("Failed to delete " + baseDir, fs.delete(baseDir, true));
     }
     log.info("Creating {}", baseDir);
     assertTrue("Failed to create " + baseDir, fs.mkdirs(baseDir));
@@ -145,7 +145,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
     log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
 
     // Import the exported data into a new table
-    conn.tableOperations().importTable(destTable, importDirDlm);
+    conn.tableOperations().importTable(destTable, importDirDlm, true, true);
 
     // Get the table ID for the table that the importtable command created
     final String tableId = conn.tableOperations().tableIdMap().get(destTable);

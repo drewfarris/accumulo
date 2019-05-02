@@ -245,7 +245,8 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public void importTable(String tableName, String exportDir)
+    public void importTable(String tableName, String exportDir, boolean keepMappings,
+        boolean skipOnline)
         throws TableExistsException, AccumuloException, AccumuloSecurityException {}
 
     @Override

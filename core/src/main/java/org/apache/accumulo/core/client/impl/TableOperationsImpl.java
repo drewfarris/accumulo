@@ -1549,7 +1549,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void importTable(String tableName, String importDir)
+  public void importTable(String tableName, String importDir, boolean keepOptions,
+      boolean skipOnline)
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(importDir != null, "importDir is null");
@@ -1583,8 +1584,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
           ioe.getMessage());
     }
 
+    byte booleanArgs = 0x0;
+    booleanArgs |= (keepOptions ? 0x1 : 0x0);
+    booleanArgs |= (skipOnline ? 0x2 : 0x0);
+    byte[] argArray = new byte[] {booleanArgs};
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
-        ByteBuffer.wrap(normedImportDir.getBytes(UTF_8)));
+        ByteBuffer.wrap(normedImportDir.getBytes(UTF_8)), ByteBuffer.wrap(argArray));
 
     Map<String,String> opts = Collections.emptyMap();
 

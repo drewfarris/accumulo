@@ -370,13 +370,13 @@ module Accumulo
         return
       end
 
-      def importTable(login, tableName, importDir)
-        send_importTable(login, tableName, importDir)
+      def importTable(login, tableName, importDir, keepMappings, skipOnline)
+        send_importTable(login, tableName, importDir, keepMappings, skipOnline)
         recv_importTable()
       end
 
-      def send_importTable(login, tableName, importDir)
-        send_message('importTable', ImportTable_args, :login => login, :tableName => tableName, :importDir => importDir)
+      def send_importTable(login, tableName, importDir, keepMappings, skipOnline)
+        send_message('importTable', ImportTable_args, :login => login, :tableName => tableName, :importDir => importDir, :keepMappings => keepMappings, :skipOnline => skipOnline)
       end
 
       def recv_importTable()
@@ -2013,7 +2013,7 @@ module Accumulo
         args = read_args(iprot, ImportTable_args)
         result = ImportTable_result.new()
         begin
-          @handler.importTable(args.login, args.tableName, args.importDir)
+          @handler.importTable(args.login, args.tableName, args.importDir, args.keepMappings, args.skipOnline)
         rescue ::Accumulo::TableExistsException => ouch1
           result.ouch1 = ouch1
         rescue ::Accumulo::AccumuloException => ouch2
@@ -3929,11 +3929,15 @@ module Accumulo
       LOGIN = 1
       TABLENAME = 2
       IMPORTDIR = 3
+      KEEPMAPPINGS = 4
+      SKIPONLINE = 5
 
       FIELDS = {
         LOGIN => {:type => ::Thrift::Types::STRING, :name => 'login', :binary => true},
         TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tableName'},
-        IMPORTDIR => {:type => ::Thrift::Types::STRING, :name => 'importDir'}
+        IMPORTDIR => {:type => ::Thrift::Types::STRING, :name => 'importDir'},
+        KEEPMAPPINGS => {:type => ::Thrift::Types::BOOL, :name => 'keepMappings'},
+        SKIPONLINE => {:type => ::Thrift::Types::BOOL, :name => 'skipOnline'}
       }
 
       def struct_fields; FIELDS; end

@@ -345,7 +345,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
       LineIterator.closeQuietly(it);
     }
     FileUtils.copyFileToDirectory(importFile, exportDir);
-    auditConnector.tableOperations().importTable(NEW_TEST_TABLE_NAME, exportDir.toString());
+    auditConnector.tableOperations().importTable(NEW_TEST_TABLE_NAME, exportDir.toString(), false,
+        false);
 
     // Now do a Directory (bulk) import of the same data.
     auditConnector.tableOperations().create(THIRD_TEST_TABLE_NAME);

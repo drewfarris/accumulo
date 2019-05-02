@@ -85,7 +85,7 @@ public class ExportIndex extends Test {
     long t4 = System.currentTimeMillis();
 
     env.getConnector().tableOperations().online(indexTableName);
-    env.getConnector().tableOperations().importTable(tmpIndexTableName, copyDir);
+    env.getConnector().tableOperations().importTable(tmpIndexTableName, copyDir, false, false);
 
     long t5 = System.currentTimeMillis();
 
